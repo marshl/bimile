@@ -24,13 +24,10 @@ class TrafficModel:
             for x in range(self.scale)
         ] for y in range(self.scale)]
 
-    def __str__(self):
-        # return "\n".join([' '.join([str(self.cells[y][x]) for x in range(self.scale)]) for y in range(self.scale)])
-        str = ''
-        for y in range(self.scale):
-            str += ' '.join(self.cells[y]) + "\n"
+        self.cell_history = [self.cells]
 
-        return str
+    def __str__(self):
+        return "\n".join([' '.join([str(self.cells[y][x]) for x in range(self.scale)]) for y in range(self.scale)])
 
     def step(self):
 
@@ -57,6 +54,9 @@ class TrafficModel:
         self.turn = self.DOWN if self.turn == self.RIGHT else self.RIGHT
         self.cells = cell_copy
 
+    def save_state(self):
+        self.cell_history.append(self.cells)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Creates a Biham–Middleton–Levine traffic model gif')
@@ -70,41 +70,46 @@ if __name__ == "__main__":
 
     traffic_model = TrafficModel(args.scale, args.density)
 
+    frame_count = 100
+
+    for i in range(frame_count):
+        traffic_model.step()
+        traffic_model.step()
+        traffic_model.save_state()
+        print(f"Simulation step {i}")
+
+    frames = []
+
     with Color('#ff0000') as red:
         with Color('#0000ff') as blue:
-            with Image() as img:
-                for i in range(50):
-                    with Image(width=traffic_model.scale,
-                               height=traffic_model.scale,
-                               background=Color('white')) as frame:
+            for i in range(frame_count):
+                frame = Image(width=traffic_model.scale,
+                              height=traffic_model.scale,
+                              background=Color('white'))
 
-                        with Drawing() as draw:
-                            draw.fill_color = blue
-                            for y in range(traffic_model.scale):
-                                for x in range(traffic_model.scale):
-                                    if traffic_model.cells[y][x] == TrafficModel.DOWN:
-                                        draw.point(x, y)
+                with Drawing() as draw:
+                    draw.fill_color = blue
+                    for y in range(traffic_model.scale):
+                        for x in range(traffic_model.scale):
+                            if traffic_model.cell_history[i][y][x] == TrafficModel.DOWN:
+                                draw.point(x, y)
 
-                            draw.fill_color = red
-                            for y in range(traffic_model.scale):
-                                for x in range(traffic_model.scale):
-                                    if traffic_model.cells[y][x] == TrafficModel.RIGHT:
-                                        draw.point(x, y)
+                    draw.fill_color = red
+                    for y in range(traffic_model.scale):
+                        for x in range(traffic_model.scale):
+                            if traffic_model.cell_history[i][y][x] == TrafficModel.RIGHT:
+                                draw.point(x, y)
 
-                            draw.draw(frame)
+                    draw.draw(frame)
 
-                        img.sequence.append(frame)
+                    frames.append(frame)
 
-                    traffic_model.step()
-                    traffic_model.step()
-                    print(f"Frame {i}\r")
-                    # img.sequence[-1].delay = i * 42
-                # draw.draw(img)
+                print(f"Frame {i}\r")
 
-                # img.sequence.append()
-                for cursor in range(50):
-                    with img.sequence[cursor] as frame:
-                        frame.delay = 10
+    with Image() as img:
+        for frame in frames:
+            img.sequence.append(frame)
+            frame.delay = 10
 
-                img.type = 'optimize'
-                img.save(filename='output.gif')
+        img.type = 'optimize'
+        img.save(filename='output.gif')
