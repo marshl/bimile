@@ -1,5 +1,9 @@
 import argparse
 from random import random
+from wand.drawing import Drawing
+from wand.color import Color
+from wand.image import Image
+import wand
 
 
 class TrafficModel:
@@ -64,12 +68,22 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     traffic_model = TrafficModel(args.scale, args.density)
-    # print(traffic_model)
-    # traffic_model.step()
-    # print("\n")
-    # print(traffic_model)
-    for x in range(1000):
-        print("\n")
-        print(traffic_model.turn);
-        print(traffic_model)
-        traffic_model.step()
+
+    with Color('#ff0000') as red:
+        with Color('#0000ff') as blue:
+            with Drawing() as draw:
+                for y in range(traffic_model.scale):
+                    for x in range(traffic_model.scale):
+                        c = traffic_model.cells[y][x]
+
+                        if c == TrafficModel.EMPTY:
+                            continue
+
+                        draw.fill_color = red if c == TrafficModel.RIGHT else blue
+                        draw.point(x, y)
+
+                with Image(width=traffic_model.scale,
+                           height=traffic_model.scale,
+                           background=Color('white')) as img:
+                    draw.draw(img)
+                    img.save(filename='output.png')
