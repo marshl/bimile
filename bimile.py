@@ -3,8 +3,8 @@ from random import random
 from wand.drawing import Drawing
 from wand.color import Color
 from wand.image import Image
-from wand.sequence import SingleImage
-import wand
+import threading
+import queue
 
 
 class TrafficModel:
@@ -58,6 +58,43 @@ class TrafficModel:
         self.cell_history.append(self.cells)
 
 
+def render_frame(frame_index: int):
+    print(f"Frame {frame_index}\r")
+
+    frame = Image(width=traffic_model.scale,
+                  height=traffic_model.scale,
+                  background=Color('white'))
+
+    with Drawing() as draw:
+        draw.fill_color = blue
+        for y in range(traffic_model.scale):
+            for x in range(traffic_model.scale):
+                if traffic_model.cell_history[frame_index][y][x] == TrafficModel.DOWN:
+                    draw.point(x, y)
+
+        draw.fill_color = red
+        for y in range(traffic_model.scale):
+            for x in range(traffic_model.scale):
+                if traffic_model.cell_history[frame_index][y][x] == TrafficModel.RIGHT:
+                    draw.point(x, y)
+
+        draw.draw(frame)
+
+    frames[frame_index] = frame
+
+
+class RenderThread(threading.Thread):
+    def __init__(self, queue):
+        threading.Thread.__init__(self)
+        self.queue = queue
+
+    def run(self):
+        while True:
+            frame_index = self.queue.get()
+            render_frame(frame_index)
+            self.queue.task_done()
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Creates a Biham–Middleton–Levine traffic model gif')
     parser.add_argument('scale', type=int,
@@ -66,45 +103,39 @@ if __name__ == "__main__":
     parser.add_argument('density', type=float,
                         help='the density of the traffic (0.0 - 1.0)')
 
+    parser.add_argument('frame_count', type=int,
+                        help='the number of frames in the output gif')
+
+    parser.add_argument('--frame_skip', type=int, default=1,
+                        help='the number of spaces that the cells should move in each frame')
+
     args = parser.parse_args()
 
     traffic_model = TrafficModel(args.scale, args.density)
 
-    frame_count = 100
+    red = Color('#ff0000')
+    blue = Color('#0000ff')
 
-    for i in range(frame_count):
-        traffic_model.step()
-        traffic_model.step()
+    for i in range(args.frame_count):
+        for j in range(args.frame_skip):
+            traffic_model.step()
+            traffic_model.step()
+
         traffic_model.save_state()
         print(f"Simulation step {i}")
 
-    frames = []
+    frames = [None] * args.frame_count
 
-    with Color('#ff0000') as red:
-        with Color('#0000ff') as blue:
-            for i in range(frame_count):
-                frame = Image(width=traffic_model.scale,
-                              height=traffic_model.scale,
-                              background=Color('white'))
+    render_queue = queue.Queue()
+    for i in range(args.frame_count):
+        render_queue.put(i)
 
-                with Drawing() as draw:
-                    draw.fill_color = blue
-                    for y in range(traffic_model.scale):
-                        for x in range(traffic_model.scale):
-                            if traffic_model.cell_history[i][y][x] == TrafficModel.DOWN:
-                                draw.point(x, y)
+    for i in range(1, 4):
+        thread = RenderThread(render_queue)
+        thread.setDaemon(True)
+        thread.start()
 
-                    draw.fill_color = red
-                    for y in range(traffic_model.scale):
-                        for x in range(traffic_model.scale):
-                            if traffic_model.cell_history[i][y][x] == TrafficModel.RIGHT:
-                                draw.point(x, y)
-
-                    draw.draw(frame)
-
-                    frames.append(frame)
-
-                print(f"Frame {i}\r")
+    render_queue.join()
 
     with Image() as img:
         for frame in frames:
