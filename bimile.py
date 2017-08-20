@@ -3,6 +3,7 @@ from random import random
 from wand.drawing import Drawing
 from wand.color import Color
 from wand.image import Image
+from wand.sequence import SingleImage
 import wand
 
 
@@ -71,19 +72,39 @@ if __name__ == "__main__":
 
     with Color('#ff0000') as red:
         with Color('#0000ff') as blue:
-            with Drawing() as draw:
-                for y in range(traffic_model.scale):
-                    for x in range(traffic_model.scale):
-                        c = traffic_model.cells[y][x]
+            with Image() as img:
+                for i in range(50):
+                    with Image(width=traffic_model.scale,
+                               height=traffic_model.scale,
+                               background=Color('white')) as frame:
 
-                        if c == TrafficModel.EMPTY:
-                            continue
+                        with Drawing() as draw:
+                            draw.fill_color = blue
+                            for y in range(traffic_model.scale):
+                                for x in range(traffic_model.scale):
+                                    if traffic_model.cells[y][x] == TrafficModel.DOWN:
+                                        draw.point(x, y)
 
-                        draw.fill_color = red if c == TrafficModel.RIGHT else blue
-                        draw.point(x, y)
+                            draw.fill_color = red
+                            for y in range(traffic_model.scale):
+                                for x in range(traffic_model.scale):
+                                    if traffic_model.cells[y][x] == TrafficModel.RIGHT:
+                                        draw.point(x, y)
 
-                with Image(width=traffic_model.scale,
-                           height=traffic_model.scale,
-                           background=Color('white')) as img:
-                    draw.draw(img)
-                    img.save(filename='output.png')
+                            draw.draw(frame)
+
+                        img.sequence.append(frame)
+
+                    traffic_model.step()
+                    traffic_model.step()
+                    print(f"Frame {i}\r")
+                    # img.sequence[-1].delay = i * 42
+                # draw.draw(img)
+
+                # img.sequence.append()
+                for cursor in range(50):
+                    with img.sequence[cursor] as frame:
+                        frame.delay = 10
+
+                img.type = 'optimize'
+                img.save(filename='output.gif')
