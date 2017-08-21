@@ -66,13 +66,13 @@ def render_frame(frame_index: int):
                   background=Color('white'))
 
     with Drawing() as draw:
-        draw.fill_color = blue
+        draw.fill_color = Color('#ff0000')
         for y in range(traffic_model.scale):
             for x in range(traffic_model.scale):
                 if traffic_model.cell_history[frame_index][y][x] == TrafficModel.DOWN:
                     draw.point(x, y)
 
-        draw.fill_color = red
+        draw.fill_color = Color('#0000ff')
         for y in range(traffic_model.scale):
             for x in range(traffic_model.scale):
                 if traffic_model.cell_history[frame_index][y][x] == TrafficModel.RIGHT:
@@ -112,9 +112,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     traffic_model = TrafficModel(args.scale, args.density)
-
-    red = Color('#ff0000')
-    blue = Color('#0000ff')
 
     for i in range(args.frame_count):
         for j in range(args.frame_skip):
