@@ -59,7 +59,7 @@ class TrafficModel:
 
 
 def render_frame(frame_index: int):
-    print(f"Frame {frame_index}\r")
+    print(f"\rFrame {frame_index}", end='')
 
     frame = Image(width=traffic_model.scale,
                   height=traffic_model.scale,
@@ -119,8 +119,9 @@ if __name__ == "__main__":
             traffic_model.step()
 
         traffic_model.save_state()
-        print(f"Simulation step {i}")
+        print(f"\rSimulation step {i}", end='')
 
+    print("\nSimulation complete. Rendering...")
     frames = [None] * args.frame_count
 
     render_queue = queue.Queue()
