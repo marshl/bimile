@@ -61,24 +61,32 @@ class TrafficModel:
 def render_frame(frame_index: int):
     print(f"\rFrame {frame_index}", end='')
 
-    frame = Image(width=traffic_model.scale,
-                  height=traffic_model.scale,
+    frame = Image(width=traffic_model.scale * args.cell_size,
+                  height=traffic_model.scale * args.cell_size,
                   background=Color('white'))
 
     with Drawing() as draw:
         draw.fill_color = Color('#ff0000')
+
         for y in range(traffic_model.scale):
             for x in range(traffic_model.scale):
                 if traffic_model.cell_history[frame_index][y][x] == TrafficModel.DOWN:
-                    draw.point(x, y)
+                    if args.cell_size == 1:
+                        draw.point(x, y)
+                    else:
+                        draw.rectangle(left=x * args.cell_size, top=y * args.cell_size,
+                                       width=args.cell_size - 1, height=args.cell_size - 1)
 
         draw.fill_color = Color('#0000ff')
         for y in range(traffic_model.scale):
             for x in range(traffic_model.scale):
                 if traffic_model.cell_history[frame_index][y][x] == TrafficModel.RIGHT:
-                    draw.point(x, y)
-
-        draw.draw(frame)
+                    if args.cell_size == 1:
+                        draw.point(x, y)
+                    else:
+                        draw.rectangle(left=x * args.cell_size, top=y * args.cell_size,
+                                       width=args.cell_size - 1, height=args.cell_size - 1)
+        draw(frame)
 
     frames[frame_index] = frame
 
@@ -106,8 +114,11 @@ if __name__ == "__main__":
     parser.add_argument('frame_count', type=int,
                         help='the number of frames in the output gif')
 
-    parser.add_argument('--frame_skip', type=int, default=1,
+    parser.add_argument('--frame-skip', type=int, default=1,
                         help='the number of spaces that the cells should move in each frame')
+
+    parser.add_argument('--cell-size', type=int, default=1,
+                        help='the number of pixels for each cell')
 
     args = parser.parse_args()
 
