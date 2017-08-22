@@ -66,7 +66,7 @@ def render_frame(frame_index: int):
                   background=Color('white'))
 
     with Drawing() as draw:
-        draw.fill_color = Color('#ff0000')
+        draw.fill_color = Color('#0000ff')
 
         for y in range(traffic_model.scale):
             for x in range(traffic_model.scale):
@@ -77,7 +77,7 @@ def render_frame(frame_index: int):
                         draw.rectangle(left=x * args.cell_size, top=y * args.cell_size,
                                        width=args.cell_size - 1, height=args.cell_size - 1)
 
-        draw.fill_color = Color('#0000ff')
+        draw.fill_color = Color('#ff0000')
         for y in range(traffic_model.scale):
             for x in range(traffic_model.scale):
                 if traffic_model.cell_history[frame_index][y][x] == TrafficModel.RIGHT:
