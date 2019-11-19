@@ -5,6 +5,7 @@ from wand.color import Color
 from wand.image import Image
 import threading
 import queue
+from typing import List
 
 
 class TrafficModel:
@@ -13,11 +14,11 @@ class TrafficModel:
     EMPTY = "."
 
     def __init__(self, scale: int, density: float):
-        self.scale = scale
-        self.density = density
-        self.turn = self.DOWN
+        self.scale: int = scale
+        self.density: float = density
+        self.turn: str = self.DOWN
 
-        self.cells = [
+        self.cells: List[List[str]] = [
             [
                 self.EMPTY
                 if random() > density
@@ -29,9 +30,9 @@ class TrafficModel:
             for y in range(self.scale)
         ]
 
-        self.cell_history = [self.cells]
+        self.cell_history: List[List[List[str]]] = [self.cells]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "\n".join(
             [
                 " ".join([str(self.cells[y][x]) for x in range(self.scale)])
@@ -70,25 +71,28 @@ class TrafficModel:
         self.turn = self.DOWN if self.turn == self.RIGHT else self.RIGHT
         self.cells = cell_copy
 
-    def save_state(self):
+    def save_state(self) -> None:
         self.cell_history.append(self.cells)
 
 
 def render_frame(frame_index: int):
     print(f"\rFrame {frame_index}", end="")
 
-    frame = Image(
+    frame: Image = Image(
         width=traffic_model.scale * args.cell_size,
         height=traffic_model.scale * args.cell_size,
         background=Color("white"),
     )
 
     with Drawing() as draw:
-        draw.fill_color = Color("#0000ff")
+        cell_types = {TrafficModel.DOWN: "#0000ff", TrafficModel.RIGHT: '#ff0000'}
+        for cell_type, colour in cell_types.items():
+            draw.fill_color = Color(colour)
+            for y in range(traffic_model.scale):
+                for x in range(traffic_model.scale):
+                    if traffic_model.cell_history[frame_index][y][x] != cell_type:
+                        continue
 
-        for y in range(traffic_model.scale):
-            for x in range(traffic_model.scale):
-                if traffic_model.cell_history[frame_index][y][x] == TrafficModel.DOWN:
                     if args.cell_size == 1:
                         draw.point(x, y)
                     else:
@@ -99,22 +103,9 @@ def render_frame(frame_index: int):
                             height=args.cell_size - 1,
                         )
 
-        draw.fill_color = Color("#ff0000")
-        for y in range(traffic_model.scale):
-            for x in range(traffic_model.scale):
-                if traffic_model.cell_history[frame_index][y][x] == TrafficModel.RIGHT:
-                    if args.cell_size == 1:
-                        draw.point(x, y)
-                    else:
-                        draw.rectangle(
-                            left=x * args.cell_size,
-                            top=y * args.cell_size,
-                            width=args.cell_size - 1,
-                            height=args.cell_size - 1,
-                        )
         draw(frame)
 
-    frames[frame_index] = frame
+    frames.append(frame)
 
 
 class RenderThread(threading.Thread):
@@ -167,7 +158,7 @@ if __name__ == "__main__":
         print(f"\rSimulation step {i}", end="")
 
     print("\nSimulation complete. Rendering...")
-    frames = [None] * args.frame_count
+    frames: List[Image] = []
 
     render_queue = queue.Queue()
     for i in range(args.frame_count):
