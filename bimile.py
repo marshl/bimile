@@ -3,8 +3,6 @@ from random import random
 from wand.drawing import Drawing
 from wand.color import Color
 from wand.image import Image
-import threading
-import queue
 from typing import List
 
 
@@ -108,18 +106,6 @@ def render_frame(frame_index: int):
     frames.append(frame)
 
 
-class RenderThread(threading.Thread):
-    def __init__(self, queue):
-        threading.Thread.__init__(self)
-        self.queue = queue
-
-    def run(self):
-        while True:
-            frame_index = self.queue.get()
-            render_frame(frame_index)
-            self.queue.task_done()
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Creates a Biham–Middleton–Levine traffic model gif"
@@ -160,16 +146,8 @@ if __name__ == "__main__":
     print("\nSimulation complete. Rendering...")
     frames: List[Image] = []
 
-    render_queue = queue.Queue()
     for i in range(args.frame_count):
-        render_queue.put(i)
-
-    for i in range(1, 4):
-        thread = RenderThread(render_queue)
-        thread.setDaemon(True)
-        thread.start()
-
-    render_queue.join()
+        render_frame(i)
 
     with Image() as img:
         for frame in frames:
